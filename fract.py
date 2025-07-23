@@ -227,6 +227,17 @@ if __name__ == "__main__":
         dl = downloader(args.package, cache_folder=cache_folder, version=args.version)
         # dpkg code.
     elif args.download:
+        import shutil
+
         check_package(args.package)
         dl = downloader(args.package, cache_folder=cache_folder)
-        # fetch from cache to working directory
+        
+        deb_path = dl.package_path
+        target_path = os.path.join(os.getcwd(), dl.filename)
+        
+        try:
+            shutil.copy2(deb_path, target_path)
+            print("Package file can be found at:", target_path)
+        except Exception as e:
+            print("Failed to copy package to current working dirrectory:", e)
+            exit(1)
