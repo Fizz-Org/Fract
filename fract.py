@@ -89,7 +89,10 @@ class downloader:
             print("Unknown data structure at mirror data.")
             exit(1)
 
-    def get_location(self)
+    class get_location:
+        def __init__(self, data):
+            pass
+            
 
 # Main guard.
 if __name__ == "__main__":
