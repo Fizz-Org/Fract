@@ -8,23 +8,26 @@ import os
 
 class downloader:
     """Fetches the .deb package and saves it to the cache for the rest of the program to use."""
-    def __init__(self, package, cache_folder=os.path.expanduser("~/.cache/fract"), head_server=head_server):
+    def __init__(self, package, version=None, cache_folder=os.path.expanduser("~/.cache/fract"), head_server=head_server):
         self.package = package
         self.cache_folder = cache_folder
         self.head_server = head_server
-        self.source = package.split(os.sep)[0]
-        self.package_name = os.sep.join(package.split(os.sep)[1:])
+        parts = package.split("/")
+        self.source = parts[0]
+        self.package_name = "/".join(parts[1:])
+        self.version = version
 
         print("Connecting to main server...")
-        source_name, self.source_server = self.get_mirror()
+        source_name, self.source_server = self.get_source()
 
         print("Connecting to source server...")
         self.data_version, self.package_data = self.get_pkgdata()
-
+        
+        self.location_fetcher = self.get_location(self)
         if self.data_version == 1:
-            location = get_location.v1()
+            self.location, self.sha256 = self.location_fetcher.v1()
 
-    def get_mirror(self):
+    def get_source(self):
         import requests
 
         try:
@@ -90,9 +93,31 @@ class downloader:
             exit(1)
 
     class get_location:
-        def __init__(self, data):
-            pass
-            
+        def __init__(self, outer):
+            self.outer = outer
+
+        def v1(self):
+            package_data = self.outer.package_data
+            version = self.outer.version or package_data["latest_version"]
+            source_server = self.outer.source_server
+            versions = package_data["versions_data"]
+
+            try:
+                data = versions[version]
+                path = data["path"]
+                sha256 = data["sha256"]
+            except:
+                print("Invalid versions data structure.")
+                exit(1)
+
+            location = source_server + "/" + path
+
+            return location, sha256
+
+def check_package(package):
+    if not package:
+        print("Must specify package.")
+        exit(1)
 
 # Main guard.
 if __name__ == "__main__":
@@ -106,6 +131,7 @@ if __name__ == "__main__":
     parser.add_argument("-D", "--download", dest="download", action='store_true')
     parser.add_argument("-d", "--devmode", dest="devmode", action='store_true')
     parser.add_argument("package", nargs="?")
+    parser.add_argument("-v", "--version", dest="version")
     args = parser.parse_args()
     
     # Devmode setup:
@@ -118,8 +144,10 @@ if __name__ == "__main__":
     os.makedirs(cache_folder, exist_ok=True)
 
     if args.install:
-        dl = downloader(args.package, cache_folder=cache_folder)
+        check_package(args.package)
+        dl = downloader(args.package, cache_folder=cache_folder, version=args.version)
         # dpkg code.
     elif args.download:
+        check_package(args.package)
         dl = downloader(args.package, cache_folder=cache_folder)
         # fetch from cache to working directory
