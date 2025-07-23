@@ -23,9 +23,15 @@ class downloader:
         print("Connecting to source server...")
         self.data_version, self.package_data = self.get_pkgdata()
         
+        print("Getting package location...")
         self.location_fetcher = self.get_location(self)
         if self.data_version == 1:
-            self.location, self.sha256 = self.location_fetcher.v1()
+            self.location, self.sha256, self.filename = self.location_fetcher.v1()
+
+        print("Fetching package...")
+        self.package_fetcher = self.fetch_package(self)
+        if self.data_version == 1:
+            self.package_path = self.package_fetcher.v1()
 
     def get_source(self):
         import requests
@@ -82,7 +88,7 @@ class downloader:
             except:
                 print("Invalid package data structure...")
                 exit(1)
-            print("Package data recieved successfully...")
+            print("Package data received successfully...")
             return 1, {
                     "name": name,
                     "latest_version": latest_version,
@@ -106,13 +112,86 @@ class downloader:
                 data = versions[version]
                 path = data["path"]
                 sha256 = data["sha256"]
+                filename = data["filename"]
             except:
                 print("Invalid versions data structure.")
                 exit(1)
 
             location = source_server + "/" + path
 
-            return location, sha256
+            return location, sha256, filename
+
+    class fetch_package:
+        def __init__(self, outer):
+            self.outer = outer
+
+        def check_sha256(self, filepath, sha256):
+            import hashlib
+
+            sha256_hash = hashlib.sha256()
+            try:
+                with open(filepath, "rb") as f:
+                    for chunk in iter(lambda: f.read(8192), b""):
+                        sha256_hash.update(chunk)
+            except Exception as e:
+                print("Unable to verify that there is no corruption:", e)
+                if input("Proceed anyways? [Y/n]") == "n":
+                    os.remove(filepath)
+                    exit(1)
+                return False
+
+            computed_hash = sha256_hash.hexdigest()
+            if computed_hash != sha256:
+                print(f"Anti-corruption check failed:\nExpected: {sha256}\nRecieved: {computed_hash}")
+                if input("Proceed anyways? [Y/n]") == "n":
+                    print("Deleting package...")
+                    os.remove(filepath)
+                    exit(1)
+                return False
+            return True
+        
+        def v1(self):
+            import requests
+            try:
+                from tqdm import tqdm
+            except:
+                def tqdm(iterable, **kwargs):
+                    return iterable
+
+            location = self.outer.location
+            sha256 = self.outer.sha256
+            cache_dir = self.outer.cache_folder
+            filepath = cache_dir + "/" + self.outer.filename
+
+            if os.path.exists(filepath):
+                print("File found in cache, no need to fetch...")
+                return filepath
+
+            print("Downloading:", location)
+            try:
+                r = requests.get(location, stream=True)
+                r.raise_for_status()
+                with open(filepath, "wb") as f, tqdm(
+                    total=int(r.headers.get('content-length', 0)), 
+                    unit='B', 
+                    unit_scale=True, 
+                    desc=self.outer.filename
+                ) as pbar:
+
+                    for chunk in r.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+                            pbar.update(len(chunk))
+            except Exception as e:
+                print("Error downloading package:", e)
+                exit(1)
+
+            print("Checking for corruptions...")
+            if not self.check_sha256(filepath, sha256):
+                print("Warning: Proceeding despite failed integrity check.")
+
+            print(f"Successfully downloaded package to \"{filepath}\"...")
+            return filepath
 
 def check_package(package):
     if not package:
