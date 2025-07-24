@@ -135,7 +135,7 @@ class downloader:
                         sha256_hash.update(chunk)
             except Exception as e:
                 print("Unable to verify that there is no corruption:", e)
-                if input("Proceed anyways? [Y/n]") == "n":
+                if input("Proceed anyways? [Y/n] ") == "n":
                     os.remove(filepath)
                     exit(1)
                 return False
@@ -143,7 +143,7 @@ class downloader:
             computed_hash = sha256_hash.hexdigest()
             if computed_hash != sha256:
                 print(f"Anti-corruption check failed:\nExpected: {sha256}\nRecieved: {computed_hash}")
-                if input("Proceed anyways? [Y/n]") == "n":
+                if input("Proceed anyways? [Y/n] ") == "n":
                     print("Deleting package...")
                     os.remove(filepath)
                     exit(1)
@@ -198,6 +198,19 @@ def check_package(package):
         print("Must specify package.")
         exit(1)
 
+def installer(filepath):
+    if input("Install the package? [Y/n] ") == "n":
+        return False
+    
+    import subprocess
+    try:
+        subprocess.run(["sudo", "dpkg", "-i", filepath], check=True)
+    except Exception as e:
+        print("dpkg failed to install:", e)
+        exit(1)
+
+    return True
+
 # Main guard.
 if __name__ == "__main__":
     # Argument Parser
@@ -225,7 +238,13 @@ if __name__ == "__main__":
     if args.install:
         check_package(args.package)
         dl = downloader(args.package, cache_folder=cache_folder, version=args.version)
-        # dpkg code.
+
+        if installer(cache_folder + "/" + dl.filename):
+            print("Installation completed successfuly.")
+            exit(0)
+        else:
+            print("Installation cancelled...")
+            exit(1)
     elif args.download:
         import shutil
 
