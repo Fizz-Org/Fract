@@ -155,8 +155,15 @@ class downloader:
             try:
                 from tqdm import tqdm
             except:
-                def tqdm(iterable, **kwargs):
-                    return iterable
+                class tqdm:
+                    def __init__(self, *args, **kwargs):
+                        pass
+                    def __enter__(self):
+                        return self
+                    def __exit__(self, exc_type, exc_val, exc_tb):
+                        pass
+                    def update(self, n):
+                        pass
 
             location = self.outer.location
             sha256 = self.outer.sha256
@@ -219,11 +226,12 @@ if __name__ == "__main__":
             prog="Fract",
             description="The Fizz app store/package manager.",
             epilog="https://github.com/fizz-org")
-    parser.add_argument("-S", "--install", dest="install", action='store_true')
-    parser.add_argument("-D", "--download", dest="download", action='store_true')
-    parser.add_argument("-d", "--devmode", dest="devmode", action='store_true')
-    parser.add_argument("package", nargs="?")
-    parser.add_argument("-v", "--version", dest="version")
+    parser.add_argument("-S", "--install", dest="install", action='store_true', help="Download and install a package.")
+    parser.add_argument("-D", "--download", dest="download", action='store_true', help="Download a package.")
+    parser.add_argument("-d", "--devmode", dest="devmode", action='store_true', help="Turns on developer mode.")
+    parser.add_argument("-R", "--remove", dest="remove", action="store_true", help="Removes a package.")
+    parser.add_argument("package", nargs="?", help="The package name: <source>/<further path and name>.")
+    parser.add_argument("-v", "--version", dest="version", help="Choose witch version you want.")
     args = parser.parse_args()
     
     # Devmode setup:
@@ -260,3 +268,15 @@ if __name__ == "__main__":
         except Exception as e:
             print("Failed to copy package to current working dirrectory:", e)
             exit(1)
+
+    elif args.remove:
+        package_name = args.package
+
+        print(f"Uninstalling '{package_name}' from system...")
+        try:
+            subprocess.run(["sudo", "dpkg", "-r", package_name], check=True)
+            print(f"Successfully uninstalled '{package_name}'.")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to uninstall '{package_name}':", e)
+
+print("Run with the -h tag for help.")
