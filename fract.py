@@ -274,6 +274,7 @@ if __name__ == "__main__":
 
         print(f"Uninstalling '{package_name}' from system...")
         try:
+            import subprocess
             subprocess.run(["sudo", "dpkg", "-r", package_name], check=True)
             print(f"Successfully uninstalled '{package_name}'.")
         except subprocess.CalledProcessError as e:
