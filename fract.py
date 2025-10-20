@@ -94,9 +94,25 @@ class downloader:
                     "latest_version": latest_version,
                     "versions_data": versions_data,
                     "description": description}
-        else:
-            print("Unknown data structure at mirror data.")
-            exit(1)
+
+        elif data["schema_version"] == 2:
+            try:
+                packages_data = data["packages"]
+                package_data = packages_data[self.package_name]
+                name = package_data["name"]
+                latest_version = package_data["latest"]
+                versions_data = package_data["versions"]
+                description = package_data["description"]
+            except Exception:
+                print("Invalid schema v2 structure.")
+                exit(1)
+
+            return 2, {
+                "name": name,
+                "latest_version": latest_version,
+                "versions_data": versions_data,
+                "description": description
+            }
 
     class get_location:
         def __init__(self, outer):
@@ -274,6 +290,7 @@ if __name__ == "__main__":
 
         if "/" in package_name:
             print("Do not use source for removing.")
+            exit(1)
 
         print(f"Uninstalling '{package_name}' from system...")
         try:
