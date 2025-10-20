@@ -102,6 +102,15 @@ class downloader:
                 name = package_data["name"]
                 latest_version = package_data["latest"]
                 versions_data = package_data["versions"]
+                import platform
+                arch = platform.machine()
+                if arch in versions_data:
+                    versions_data = versions_data[arch]
+                elif "any" in versions_data:
+                    versions_data = versions_data["any"]
+                else:
+                    print("Architecture not availlable...")
+                    exit(1)
                 description = package_data["description"]
             except Exception:
                 print("Invalid schema v2 structure.")
