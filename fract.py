@@ -272,6 +272,9 @@ if __name__ == "__main__":
     elif args.remove:
         package_name = args.package
 
+        if "/" in package_name:
+            print("Do not use source for removing.")
+
         print(f"Uninstalling '{package_name}' from system...")
         try:
             import subprocess
