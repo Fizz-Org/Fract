@@ -101,7 +101,9 @@ class downloader:
                 package_data = packages_data[self.package_name]
                 name = package_data["name"]
                 latest_version = package_data["latest"]
-                versions_data = package_data["versions"]
+                version = self.version or latest_version
+                version_data = versions[version]
+                versions_data = package_data[versions]
                 import platform
                 arch = platform.machine()
                 if arch in versions_data:
