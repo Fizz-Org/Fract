@@ -101,7 +101,7 @@ class downloader:
                 package_data = packages_data[self.package_name]
                 name = package_data["name"]
                 latest_version = package_data["latest"]
-                version = self.version or latest_version
+                versions = self.version or latest_version
                 version_data = versions[version]
                 versions_data = package_data[versions]
                 import platform
