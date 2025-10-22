@@ -104,13 +104,12 @@ class downloader:
                 versions = package_data["versions"]
                 version = self.version or latest_version
                 version_data = versions[version]
-                versions_data = package_data[version]
                 import platform
                 arch = platform.machine()
-                if arch in versions_data:
-                    versions_data = versions_data[arch]
-                elif "any" in versions_data:
-                    versions_data = versions_data["any"]
+                if arch in version_data:
+                    versions_data = version_data[arch]
+                elif "any" in version_data:
+                    versions_data = version_data["any"]
                 else:
                     print("Architecture not availlable...")
                     exit(1)
