@@ -34,6 +34,8 @@ class downloader:
         self.package_fetcher = self.fetch_package(self)
         if self.data_version == 1:
             self.package_path = self.package_fetcher.v1()
+        elif self.data_version == 2:
+            self.package_data = self.package_fetcher.v2()
 
     def get_source(self):
         import requests
