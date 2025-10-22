@@ -27,6 +27,8 @@ class downloader:
         self.location_fetcher = self.get_location(self)
         if self.data_version == 1:
             self.location, self.sha256, self.filename = self.location_fetcher.v1()
+        elif self.data_version == 2:
+            self.location, self.sha256, self.filename = self.location_fetcher.v2()
 
         print("Fetching package...")
         self.package_fetcher = self.fetch_package(self)
@@ -148,6 +150,24 @@ class downloader:
             location = source_server + "/" + path
 
             return location, sha256, filename
+
+        def v2(self):
+            package_data = self.outer.package_data
+            version = self.outer.version or package_data["latest_version"]
+            source_server = self.outer.source_server
+            versions_data = package_data["versions_data"]
+
+            try:
+                path = versions_data["path"]
+                sha256 = versions_data["sha256"]
+                filename = versions_data["filename"]
+            except:
+                print("Invalid schema v2 versions data structure.")
+                exit(1)
+
+            location = source_server + "/" + path
+            return location, sha256, filename
+
 
     class fetch_package:
         def __init__(self, outer):
