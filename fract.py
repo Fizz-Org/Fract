@@ -114,8 +114,9 @@ class downloader:
                     print("Architecture not availlable...")
                     exit(1)
                 description = package_data["description"]
-            except Exception:
+            except Exception as e:
                 print("Invalid schema v2 structure.")
+                print(e)
                 exit(1)
 
             return 2, {
