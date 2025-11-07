@@ -35,7 +35,7 @@ class downloader:
         if self.data_version == 1:
             self.package_path = self.package_fetcher.v1()
         elif self.data_version == 2:
-            self.package_data = self.package_fetcher.v2()
+            self.package_path = self.package_fetcher.v2()
 
     def get_source(self):
         import requests
@@ -106,8 +106,14 @@ class downloader:
                 name = package_data["name"]
                 latest_version = package_data["latest"]
                 versions = package_data["versions"]
+                description = package_data["description"]
+
                 version = self.version or latest_version
-                version_data = versions[version]
+                version_data = versions.get(version)
+                if not version_data:
+                    print(f"Version '{version}' not found for package '{self.package_name}'.")
+                    exit(1)
+
                 import platform
                 arch = platform.machine()
                 if arch in version_data:
@@ -115,20 +121,22 @@ class downloader:
                 elif "any" in version_data:
                     versions_data = version_data["any"]
                 else:
-                    print("Architecture not availlable...")
+                    print(f"No build available for architecture '{arch}' or 'any'.")
                     exit(1)
-                description = package_data["description"]
+
             except Exception as e:
                 print("Invalid schema v2 structure.")
                 print(e)
                 exit(1)
 
+            print("Schema v2 package data loaded successfully.")
             return 2, {
                 "name": name,
                 "latest_version": latest_version,
                 "versions_data": versions_data,
                 "description": description
             }
+
 
     class get_location:
         def __init__(self, outer):
@@ -202,6 +210,57 @@ class downloader:
         
         def v1(self):
             import requests
+            try:
+                from tqdm import tqdm
+            except:
+                class tqdm:
+                    def __init__(self, *args, **kwargs):
+                        pass
+                    def __enter__(self):
+                        return self
+                    def __exit__(self, exc_type, exc_val, exc_tb):
+                        pass
+                    def update(self, n):
+                        pass
+
+            location = self.outer.location
+            sha256 = self.outer.sha256
+            cache_dir = self.outer.cache_folder
+            filepath = cache_dir + "/" + self.outer.filename
+
+            if os.path.exists(filepath):
+                print("File found in cache, no need to fetch...")
+                return filepath
+
+            print("Downloading:", location)
+            try:
+                r = requests.get(location, stream=True)
+                r.raise_for_status()
+                with open(filepath, "wb") as f, tqdm(
+                    total=int(r.headers.get('content-length', 0)), 
+                    unit='B', 
+                    unit_scale=True, 
+                    desc=self.outer.filename
+                ) as pbar:
+
+                    for chunk in r.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+                            pbar.update(len(chunk))
+            except Exception as e:
+                print("Error downloading package:", e)
+                exit(1)
+
+            print("Checking for corruptions...")
+            if not self.check_sha256(filepath, sha256):
+                print("Warning: Proceeding despite failed integrity check.")
+
+            print(f"Successfully downloaded package to \"{filepath}\"...")
+            return filepath
+
+        def v2(self):
+            import requests
+
             try:
                 from tqdm import tqdm
             except:

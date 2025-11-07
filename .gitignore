@@ -5,3 +5,4 @@ dist/
 deb-build/
 files/
 venv/
+*.deb
