@@ -6,3 +6,4 @@ deb-build/
 files/
 venv/
 *.deb
+*__pycache__/
