@@ -1,6 +1,7 @@
 # Imports
 import argparse
 import os
+import shutil
 
 # Config
 import build_config as config
@@ -27,9 +28,14 @@ if __name__ == "__main__":
     else:
         CACHE_DIR = os.path.expanduser(config.CACHE_FOLDER)
 
+    # Make sure tat CACHE_DIR exists.
+    if not os.path.exists(CACHE_DIR):
+        os.makedirs(CACHE_DIR)
+
     # Download a package.
     if args.download:
-        import src.downloader as downloader
+        import src.data_fetcher as df 
+        import src.downloader as dl
 
         # Ensures a package is specified
         if not args.package:
@@ -41,8 +47,17 @@ if __name__ == "__main__":
         package_name = "/".join(args.package.split("/")[1:])
 
         # Grab source data from root server.
-        source_data = downloader.get_source(config.ROOT_SERVER, source_name)
-    
+        source_data = df.get_source(config.ROOT_SERVER, source_name)
+
+        # Grab package data (such as file location):
+        pkg_data = df.get_pkgdata(source_data["url"], package_name, version=args.version)
+
+        # Download package (and check sha256).
+        filepath = dl.fetch_package(CACHE_DIR, source_data["url"], pkg_data)
+        
+        # Copy package binary to current working directory.
+        shutil.copy(filepath, os.getcwd())
+   
     else:
         print("\x1b[33mUse with the -h tag for help menu.\x1b[0m")
 
