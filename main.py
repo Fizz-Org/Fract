@@ -26,14 +26,14 @@ if __name__ == "__main__":
         print("\x1b[33mDeveloper mode: active.\x1b[0m")
         CACHE_DIR = "cache"
     else:
-        CACHE_DIR = os.path.expanduser(config.CACHE_FOLDER)
+        CACHE_DIR = os.path.expanduser(config.CACHE_DIR)
 
     # Make sure tat CACHE_DIR exists.
     if not os.path.exists(CACHE_DIR):
         os.makedirs(CACHE_DIR)
 
     # Download a package.
-    if args.download:
+    if args.download or args.install:
         import src.data_fetcher as df 
         import src.downloader as dl
 
@@ -55,8 +55,14 @@ if __name__ == "__main__":
         # Download package (and check sha256).
         filepath = dl.fetch_package(CACHE_DIR, source_data["url"], pkg_data)
         
-        # Copy package binary to current working directory.
-        shutil.copy(filepath, os.getcwd())
+        if args.download:
+            # Copy package binary to current working directory.
+            shutil.copy(filepath, os.getcwd())
+        else:
+            # Install the package.
+            from src.installer import install
+
+            install(filepath)
    
     else:
         print("\x1b[33mUse with the -h tag for help menu.\x1b[0m")
